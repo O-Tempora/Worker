@@ -8,7 +8,29 @@ import (
 )
 
 type Worker struct {
-	task Task
+	task  Task
+	delay time.Duration
+}
+
+type Option func(*Worker)
+
+func WithDelay(d time.Duration) Option {
+	return func(w *Worker) { w.delay = d }
+}
+
+func New(task Task, opts ...Option) *Worker {
+	w := newWorker(task)
+	for i := range opts {
+		opts[i](w)
+	}
+	return w
+}
+
+func newWorker(task Task) *Worker {
+	return &Worker{
+		delay: DefaultDelay,
+		task:  task,
+	}
 }
 
 func (w *Worker) validate() error {
@@ -19,19 +41,6 @@ func (w *Worker) validate() error {
 	if w.task == nil {
 		return fmt.Errorf("task is nil")
 	}
-
-	return nil
-}
-
-func StartBackgroundWorker(ctx context.Context, w *Worker) error {
-	if err := w.validate(); err != nil {
-		return fmt.Errorf("worker validate: %w", err)
-	}
-
-	// set defaults
-	go func() {
-		w.run(ctx)
-	}()
 
 	return nil
 }
@@ -49,14 +58,26 @@ func (w *Worker) run(ctx context.Context) {
 			if err := w.runTask(ctx); err != nil {
 				log.Println("finished work with error: ", err.Error())
 			}
+
+			time.Sleep(w.delay)
 			continue
 		}
 	}
 }
 
 func (w *Worker) runTask(ctx context.Context) error {
-	startedAr := time.Now()
-	log.Printf("started task at %s\n", startedAr.Format(time.RFC3339))
+	startedAt := time.Now()
+	log.Printf("started task at %s\n", startedAt.Format(time.RFC3339))
 
 	return w.task(ctx)
+}
+
+func StartBackgroundWorker(ctx context.Context, w *Worker) error {
+	if err := w.validate(); err != nil {
+		return fmt.Errorf("worker validate: %w", err)
+	}
+
+	go w.run(ctx)
+
+	return nil
 }

@@ -16,7 +16,7 @@ func TestWorker_Basics(t *testing.T) {
 		t.Parallel()
 
 		tsk, done := taskCounter(5)
-		wk := worker.NewBuilder().Task(tsk).Build()
+		wk := worker.New(tsk, worker.WithDelay(0))
 
 		ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 		defer cancel()
@@ -34,11 +34,11 @@ func TestWorker_Basics(t *testing.T) {
 		}
 	})
 
-	t.Run("should stop after parent context cancelation", func(t *testing.T) {
+	t.Run("expecting to stop after parent context cancelation", func(t *testing.T) {
 		t.Parallel()
 
 		tsk, done := taskCounter(0)
-		wk := worker.NewBuilder().Task(tsk).Build()
+		wk := worker.New(tsk, worker.WithDelay(0))
 
 		ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 		cancel()
@@ -53,6 +53,28 @@ func TestWorker_Basics(t *testing.T) {
 			// noop
 		case <-done:
 			t.Fatal("parent context is canceled therefore task must not be executed")
+		}
+	})
+
+	t.Run("expecting to run exactly once in a second with 1 sec delay", func(t *testing.T) {
+		t.Parallel()
+
+		tsk, done := taskCounter(2)
+		wk := worker.New(tsk, worker.WithDelay(1*time.Second))
+
+		ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+		cancel()
+
+		err := worker.StartBackgroundWorker(ctx, wk)
+		if err != nil {
+			t.Errorf("worker error: %s", err.Error())
+		}
+
+		select {
+		case <-ctx.Done():
+			// noop
+		case <-done:
+			t.Fatal("context must be cancelled because of delay")
 		}
 	})
 }
@@ -74,7 +96,7 @@ func TestWorker_Validation(t *testing.T) {
 
 		err := worker.StartBackgroundWorker(
 			context.Background(),
-			worker.NewBuilder().Task(nil).Build(),
+			worker.New(nil),
 		)
 		if err == nil {
 			t.Error("must return an error since task is nil")
