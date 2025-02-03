@@ -2,6 +2,7 @@ package worker
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"time"
 )
@@ -10,8 +11,23 @@ type Worker struct {
 	task Task
 }
 
+func (w *Worker) validate() error {
+	if w == nil {
+		return fmt.Errorf("worker is nil")
+	}
+
+	if w.task == nil {
+		return fmt.Errorf("task is nil")
+	}
+
+	return nil
+}
+
 func StartBackgroundWorker(ctx context.Context, w *Worker) error {
-	// validate
+	if err := w.validate(); err != nil {
+		return fmt.Errorf("worker validate: %w", err)
+	}
+
 	// set defaults
 	go func() {
 		w.run(ctx)
