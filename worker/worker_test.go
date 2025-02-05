@@ -23,7 +23,7 @@ func TestWorker_Basics(t *testing.T) {
 
 		err := worker.StartBackgroundWorker(ctx, wk)
 		if err != nil {
-			t.Errorf("worker error: %s", err.Error())
+			t.Fatalf("worker error: %s", err.Error())
 		}
 
 		select {
@@ -45,7 +45,7 @@ func TestWorker_Basics(t *testing.T) {
 
 		err := worker.StartBackgroundWorker(ctx, wk)
 		if err != nil {
-			t.Errorf("worker error: %s", err.Error())
+			t.Fatalf("worker error: %s", err.Error())
 		}
 
 		select {
@@ -67,7 +67,7 @@ func TestWorker_Basics(t *testing.T) {
 
 		err := worker.StartBackgroundWorker(ctx, wk)
 		if err != nil {
-			t.Errorf("worker error: %s", err.Error())
+			t.Fatalf("worker error: %s", err.Error())
 		}
 
 		select {
@@ -87,7 +87,7 @@ func TestWorker_Validation(t *testing.T) {
 
 		err := worker.StartBackgroundWorker(context.Background(), nil)
 		if err == nil {
-			t.Error("must return an error since worker is nil")
+			t.Fatal("must return an error since worker is nil")
 		}
 	})
 
@@ -99,7 +99,7 @@ func TestWorker_Validation(t *testing.T) {
 			worker.New(nil),
 		)
 		if err == nil {
-			t.Error("must return an error since task is nil")
+			t.Fatal("must return an error since task is nil")
 		}
 	})
 }
