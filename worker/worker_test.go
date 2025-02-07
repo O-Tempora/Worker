@@ -9,6 +9,21 @@ import (
 	"github.com/O-Tempora/hive/worker"
 )
 
+func taskCounter(count uint32) (worker.Task, <-chan struct{}) {
+	var ct atomic.Uint32
+	doneCh := make(chan struct{})
+
+	task := worker.Task(func(ctx context.Context) error {
+		if ct.Add(1) == count {
+			close(doneCh)
+		}
+
+		return nil
+	})
+
+	return task, doneCh
+}
+
 func TestWorker_Basics(t *testing.T) {
 	t.Parallel()
 
@@ -56,7 +71,7 @@ func TestWorker_Basics(t *testing.T) {
 		}
 	})
 
-	t.Run("expecting to run exactly once in a second with 1 sec delay", func(t *testing.T) {
+	t.Run("expecting to run exactly once in a second with 0.8 sec delay", func(t *testing.T) {
 		t.Parallel()
 
 		tsk, done := taskCounter(2)
@@ -102,19 +117,4 @@ func TestWorker_Validation(t *testing.T) {
 			t.Fatal("must return an error since task is nil")
 		}
 	})
-}
-
-func taskCounter(count uint32) (worker.Task, <-chan struct{}) {
-	var ct atomic.Uint32
-	doneCh := make(chan struct{})
-
-	task := worker.Task(func(ctx context.Context) error {
-		if ct.Add(1) == count {
-			close(doneCh)
-		}
-
-		return nil
-	})
-
-	return task, doneCh
 }

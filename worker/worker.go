@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"log"
 	"time"
+
+	"github.com/O-Tempora/hive/safe"
 )
 
 type Worker struct {
@@ -33,6 +35,16 @@ func newWorker(task Task) *Worker {
 	}
 }
 
+func StartBackgroundWorker(ctx context.Context, w *Worker) error {
+	if err := w.validate(); err != nil {
+		return fmt.Errorf("worker validate: %w", err)
+	}
+
+	safe.Go(ctx, w.run)
+
+	return nil
+}
+
 func (w *Worker) validate() error {
 	if w == nil {
 		return fmt.Errorf("worker is nil")
@@ -49,17 +61,20 @@ func (w *Worker) run(ctx context.Context) {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
+	t := time.NewTimer(0)
+	defer t.Stop()
+
 	for {
+		time.Sleep(w.delay)
 		select {
 		case <-ctx.Done():
 			return
-		default:
+		case <-t.C:
 			ctx := context.Background()
 			if err := w.runTask(ctx); err != nil {
 				log.Println("finished work with error: ", err.Error())
 			}
-
-			time.Sleep(w.delay)
+			t.Reset(w.delay)
 			continue
 		}
 	}
@@ -70,14 +85,4 @@ func (w *Worker) runTask(ctx context.Context) error {
 	log.Printf("started task at %s\n", startedAt.Format(time.RFC3339))
 
 	return w.task(ctx)
-}
-
-func StartBackgroundWorker(ctx context.Context, w *Worker) error {
-	if err := w.validate(); err != nil {
-		return fmt.Errorf("worker validate: %w", err)
-	}
-
-	go w.run(ctx)
-
-	return nil
 }
