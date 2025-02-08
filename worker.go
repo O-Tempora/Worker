@@ -3,21 +3,35 @@ package worker
 import (
 	"context"
 	"fmt"
-	"log"
 	"time"
 
-	"github.com/O-Tempora/hive/safe"
+	"github.com/O-Tempora/worker/safe"
 )
 
 type Worker struct {
-	task  Task
-	delay time.Duration
+	task Task
+
+	delay      time.Duration
+	onErrDelay time.Duration
+
+	ti *TimeInterval
 }
 
 type Option func(*Worker)
 
 func WithDelay(d time.Duration) Option {
 	return func(w *Worker) { w.delay = d }
+}
+
+func WithOnErrDelay(d time.Duration) Option {
+	return func(w *Worker) { w.onErrDelay = d }
+}
+
+func WithTimeInterval(from, to time.Time) Option {
+	return func(w *Worker) {
+		ti := NewTimeInterval(from, to)
+		w.ti = &ti
+	}
 }
 
 func New(task Task, opts ...Option) *Worker {
@@ -30,8 +44,9 @@ func New(task Task, opts ...Option) *Worker {
 
 func newWorker(task Task) *Worker {
 	return &Worker{
-		delay: DefaultDelay,
-		task:  task,
+		task:       task,
+		delay:      DefaultDelay,
+		onErrDelay: DefaultOnErrDelay,
 	}
 }
 
@@ -65,24 +80,31 @@ func (w *Worker) run(ctx context.Context) {
 	defer t.Stop()
 
 	for {
-		time.Sleep(w.delay)
 		select {
 		case <-ctx.Done():
 			return
 		case <-t.C:
-			ctx := context.Background()
+			if !w.isAllowedToRun() {
+				continue
+			}
+			ctx := context.WithoutCancel(ctx)
+
 			if err := w.runTask(ctx); err != nil {
-				log.Println("finished work with error: ", err.Error())
+				t.Reset(w.onErrDelay)
 			}
 			t.Reset(w.delay)
-			continue
 		}
 	}
 }
 
 func (w *Worker) runTask(ctx context.Context) error {
-	startedAt := time.Now()
-	log.Printf("started task at %s\n", startedAt.Format(time.RFC3339))
-
 	return w.task(ctx)
+}
+
+func (w *Worker) isAllowedToRun() bool {
+	if w.ti == nil {
+		return true
+	}
+
+	return w.ti.IsInInterval(time.Now())
 }

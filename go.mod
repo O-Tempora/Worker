@@ -1,3 +1,3 @@
-module github.com/O-Tempora/hive
+module github.com/O-Tempora/worker
 
 go 1.23.5

@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/O-Tempora/hive/worker"
+	"github.com/O-Tempora/worker"
 )
 
 func taskCounter(count uint32) (worker.Task, <-chan struct{}) {
