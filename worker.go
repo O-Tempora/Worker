@@ -14,6 +14,8 @@ type Worker struct {
 	delay      time.Duration
 	onErrDelay time.Duration
 
+	tp TimeProvider
+
 	ti *TimeInterval
 }
 
@@ -27,7 +29,11 @@ func WithOnErrDelay(d time.Duration) Option {
 	return func(w *Worker) { w.onErrDelay = d }
 }
 
-func WithTimeInterval(from, to time.Time) Option {
+func WithCurrentTimeProvider(tp TimeProvider) Option {
+	return func(w *Worker) { w.tp = tp }
+}
+
+func WithTimeInterval(from, to Time) Option {
 	return func(w *Worker) {
 		ti := NewTimeInterval(from, to)
 		w.ti = &ti
@@ -47,6 +53,8 @@ func newWorker(task Task) *Worker {
 		task:       task,
 		delay:      DefaultDelay,
 		onErrDelay: DefaultOnErrDelay,
+		tp:         defaultTimeProvider,
+		ti:         nil,
 	}
 }
 
@@ -84,7 +92,8 @@ func (w *Worker) run(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case <-t.C:
-			if !w.isAllowedToRun() {
+			if !w.isAllowedToRun(ctx) {
+				t.Reset(w.delay)
 				continue
 			}
 			ctx := context.WithoutCancel(ctx)
@@ -101,10 +110,10 @@ func (w *Worker) runTask(ctx context.Context) error {
 	return w.task(ctx)
 }
 
-func (w *Worker) isAllowedToRun() bool {
+func (w *Worker) isAllowedToRun(ctx context.Context) bool {
 	if w.ti == nil {
 		return true
 	}
 
-	return w.ti.IsInInterval(time.Now())
+	return w.ti.IsInInterval(w.tp(ctx))
 }

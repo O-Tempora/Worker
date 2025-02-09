@@ -118,3 +118,35 @@ func TestWorker_Validation(t *testing.T) {
 		}
 	})
 }
+
+func TestWorker_IsNotInRunInterval(t *testing.T) {
+	t.Parallel()
+
+	tsk, done := taskCounter(1)
+	wk := worker.New(
+		tsk,
+		worker.WithDelay(1*time.Second),
+		worker.WithCurrentTimeProvider(func(ctx context.Context) time.Time {
+			return time.Date(1990, 5, 5, 10, 10, 10, 1, time.UTC)
+		}),
+		worker.WithTimeInterval(
+			worker.NewTime(22, 0, 0),
+			worker.NewTime(23, 0, 0),
+		),
+	)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	cancel()
+
+	err := worker.StartBackgroundWorker(ctx, wk)
+	if err != nil {
+		t.Fatalf("worker error: %s", err.Error())
+	}
+
+	select {
+	case <-ctx.Done():
+		// noop
+	case <-done:
+		t.Fatal("context must be cancelled because of delay")
+	}
+}
