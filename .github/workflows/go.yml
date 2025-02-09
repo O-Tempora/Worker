@@ -5,12 +5,11 @@ name: Go
 
 on:
   push:
-    branches: [ "master" ]
+    branches: [ "*" ]
   pull_request:
-    branches: [ "master" ]
+    branches: [ "*" ]
 
 jobs:
-
   build:
     runs-on: ubuntu-latest
     strategy:
@@ -20,13 +19,16 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
-    - name: Set up Go
+    - name: setup
       uses: actions/setup-go@v5
       with:
         go-version: ${{ matrix.go-version }}
 
-    - name: Build
+    - name: build
       run: go build -v ./...
 
-    - name: Test
+    - name: vet
+      run: go vet ./...
+
+    - name: test
       run: go test -failfast -race -v ./...
