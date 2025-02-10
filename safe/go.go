@@ -7,6 +7,7 @@ import (
 	"runtime/debug"
 )
 
+// Call runs input function fn and recovers a panic (if any happened).
 func Call(ctx context.Context, fn func(ctx context.Context) error) (err error) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -17,6 +18,8 @@ func Call(ctx context.Context, fn func(ctx context.Context) error) (err error) {
 	return fn(ctx)
 }
 
+// Go is the asynchronous version of Call.
+// It does not perform error check.
 func Go(ctx context.Context, fn func(ctx context.Context)) {
 	go func() {
 		_ = Call(ctx, func(ctx context.Context) error {

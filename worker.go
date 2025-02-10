@@ -8,6 +8,17 @@ import (
 	"github.com/O-Tempora/worker/safe"
 )
 
+// Worker periodically runs given task.
+//
+// task - a function which worker runs over time.
+//
+// delay - time between finishing N-th task and running N+1-th task.
+//
+// onErrDelay - time between finishing N-th task and running N+1-th task if N-th task returned error.
+//
+// tp - provides current time for worker.
+//
+// ti - time interval in which worker can run its task. If nil - task can be run whenever worker is ready.
 type Worker struct {
 	task Task
 
@@ -19,20 +30,25 @@ type Worker struct {
 	ti *TimeInterval
 }
 
+// Option is a constructor option for worker.
 type Option func(*Worker)
 
+// WithDelay sets worker's delay.
 func WithDelay(d time.Duration) Option {
 	return func(w *Worker) { w.delay = d }
 }
 
+// WithOnErrDelay sets worker's onErrDelay.
 func WithOnErrDelay(d time.Duration) Option {
 	return func(w *Worker) { w.onErrDelay = d }
 }
 
+// WithCurrentTimeProvider sets worker's current time provider.
 func WithCurrentTimeProvider(tp TimeProvider) Option {
 	return func(w *Worker) { w.tp = tp }
 }
 
+// WithTimeInterval sets worker's task run time interval.
 func WithTimeInterval(from, to Time) Option {
 	return func(w *Worker) {
 		ti := NewTimeInterval(from, to)
@@ -40,6 +56,10 @@ func WithTimeInterval(from, to Time) Option {
 	}
 }
 
+// New creates new Worker.
+//
+// It is highly recommended to specify most of the options manualy in this constructor,
+// since provided defaults may be insuffitient or inadequate in some specific usecases.
 func New(task Task, opts ...Option) *Worker {
 	w := newWorker(task)
 	for i := range opts {
@@ -58,6 +78,7 @@ func newWorker(task Task) *Worker {
 	}
 }
 
+// StartBackgroundWorker starts worker's background loop of executing given task.
 func StartBackgroundWorker(ctx context.Context, w *Worker) error {
 	if err := w.validate(); err != nil {
 		return fmt.Errorf("worker validate: %w", err)

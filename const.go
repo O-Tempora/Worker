@@ -6,7 +6,9 @@ import (
 )
 
 const (
-	DefaultDelay      = 500 * time.Millisecond
+	// DefaultDelay is a default delay between task runs.
+	DefaultDelay = 500 * time.Millisecond
+	// DefaultOnErrDelay is a default delay between tasks if an error occurs.
 	DefaultOnErrDelay = 3 * time.Second
 )
 

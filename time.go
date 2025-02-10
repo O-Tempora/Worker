@@ -5,6 +5,7 @@ import (
 	"time"
 )
 
+// Time represents time in hours, minutes, and seconds.
 type Time struct {
 	hours   int
 	minutes int
@@ -31,10 +32,12 @@ func FromTime(t time.Time) Time {
 	}
 }
 
+// Eq checks equality of time objects.
 func (t Time) Eq(other Time) bool {
 	return t == other
 }
 
+// Before returns true if t is before other.
 func (t Time) Before(other Time) bool {
 	if t.hours != other.hours {
 		return t.hours < other.hours
@@ -47,6 +50,7 @@ func (t Time) Before(other Time) bool {
 	return t.seconds < other.seconds
 }
 
+// After returns true if t is after other.
 func (t Time) After(other Time) bool {
 	if t.hours != other.hours {
 		return t.hours > other.hours
