@@ -7,7 +7,7 @@ import (
 
 const (
 	DefaultDelay      = 500 * time.Millisecond
-	DefaultOnErrDelay = 1500 * time.Second
+	DefaultOnErrDelay = 3 * time.Second
 )
 
 var (

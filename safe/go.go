@@ -19,7 +19,7 @@ func Call(ctx context.Context, fn func(ctx context.Context) error) (err error) {
 
 func Go(ctx context.Context, fn func(ctx context.Context)) {
 	go func() {
-		Call(ctx, func(ctx context.Context) error {
+		_ = Call(ctx, func(ctx context.Context) error {
 			fn(ctx)
 			return nil
 		})
