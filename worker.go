@@ -48,8 +48,8 @@ func WithCurrentTimeProvider(tp TimeProvider) Option {
 	return func(w *Worker) { w.tp = tp }
 }
 
-// WithTimeInterval sets worker's task run time interval.
-func WithTimeInterval(from, to Time) Option {
+// WithTaskRunTimeInterval sets worker's task run time interval.
+func WithTaskRunTimeInterval(from, to Time) Option {
 	return func(w *Worker) {
 		ti := NewTimeInterval(from, to)
 		w.ti = &ti

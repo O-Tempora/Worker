@@ -129,7 +129,7 @@ func TestWorker_IsNotInRunInterval(t *testing.T) {
 		worker.WithCurrentTimeProvider(func(ctx context.Context) time.Time {
 			return time.Date(1990, 5, 5, 10, 10, 10, 1, time.UTC)
 		}),
-		worker.WithTimeInterval(
+		worker.WithTaskRunTimeInterval(
 			worker.NewTime(22, 0, 0),
 			worker.NewTime(23, 0, 0),
 		),
