@@ -24,6 +24,28 @@ func taskCounter(count uint32) (worker.Task, <-chan struct{}) {
 	return task, doneCh
 }
 
+func taskCounterWithDelay(count uint32, dl time.Duration) (worker.Task, <-chan struct{}) {
+	var ct atomic.Uint32
+	doneCh := make(chan struct{})
+
+	task := worker.Task(func(ctx context.Context) error {
+		tm := time.NewTimer(dl)
+		defer tm.Stop()
+
+		select {
+		case <-tm.C:
+			if ct.Add(1) == count {
+				close(doneCh)
+			}
+		case <-ctx.Done():
+			return ctx.Err()
+		}
+		return nil
+	})
+
+	return task, doneCh
+}
+
 func TestWorker_Basics(t *testing.T) {
 	t.Parallel()
 
@@ -75,10 +97,10 @@ func TestWorker_Basics(t *testing.T) {
 		t.Parallel()
 
 		tsk, done := taskCounter(2)
-		wk := worker.New(tsk, worker.WithDelay(1*time.Second))
+		wk := worker.New(tsk, worker.WithDelay(800*time.Millisecond))
 
 		ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
-		cancel()
+		defer cancel()
 
 		err := worker.StartBackgroundWorker(ctx, wk)
 		if err != nil {
@@ -148,5 +170,31 @@ func TestWorker_IsNotInRunInterval(t *testing.T) {
 		// noop
 	case <-done:
 		t.Fatal("context must be cancelled because of delay")
+	}
+}
+
+func TestWorker_TaskFailsWithTimeout(t *testing.T) {
+	t.Parallel()
+
+	tsk, done := taskCounterWithDelay(1, 100*time.Millisecond)
+	wk := worker.New(
+		tsk,
+		worker.WithDelay(50*time.Millisecond),
+		worker.WithRunTimeout(99*time.Millisecond),
+	)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
+
+	err := worker.StartBackgroundWorker(ctx, wk)
+	if err != nil {
+		t.Fatalf("worker error: %s", err.Error())
+	}
+
+	select {
+	case <-ctx.Done():
+		// noop
+	case <-done:
+		t.Fatal("context must be canceled because task can't be finished due to timeout")
 	}
 }

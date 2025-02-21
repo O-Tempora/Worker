@@ -19,11 +19,15 @@ import (
 // tp - provides current time for worker.
 //
 // ti - time interval in which worker can run its task. If nil - task can be run whenever worker is ready.
+//
+// runTimeout - timeout for worker's task.
 type Worker struct {
 	task Task
 
 	delay      time.Duration
 	onErrDelay time.Duration
+
+	runTimeout time.Duration
 
 	tp TimeProvider
 
@@ -56,6 +60,13 @@ func WithTaskRunTimeInterval(from, to Time) Option {
 	}
 }
 
+// WithRunTimeout sets timeout for worker's task.
+func WithRunTimeout(tm time.Duration) Option {
+	return func(w *Worker) {
+		w.runTimeout = tm
+	}
+}
+
 // New creates new Worker.
 //
 // It is highly recommended to specify most of the options manualy in this constructor,
@@ -73,7 +84,8 @@ func newWorker(task Task) *Worker {
 		task:       task,
 		delay:      DefaultDelay,
 		onErrDelay: DefaultOnErrDelay,
-		tp:         defaultTimeProvider,
+		runTimeout: DefaultDelay,
+		tp:         DefaultTimeProvider,
 		ti:         nil,
 	}
 }
@@ -105,7 +117,7 @@ func (w *Worker) run(ctx context.Context) {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	t := time.NewTimer(0)
+	t := time.NewTimer(w.delay)
 	defer t.Stop()
 
 	for {
@@ -117,9 +129,9 @@ func (w *Worker) run(ctx context.Context) {
 				t.Reset(w.delay)
 				continue
 			}
-			ctx := context.WithoutCancel(ctx)
 
-			if err := w.runTask(ctx); err != nil {
+			childCtx := context.WithoutCancel(ctx)
+			if err := w.runTask(childCtx); err != nil {
 				t.Reset(w.onErrDelay)
 			}
 			t.Reset(w.delay)
@@ -128,6 +140,9 @@ func (w *Worker) run(ctx context.Context) {
 }
 
 func (w *Worker) runTask(ctx context.Context) error {
+	ctx, cancel := context.WithTimeout(ctx, w.runTimeout)
+	defer cancel()
+
 	return w.task(ctx)
 }
 
