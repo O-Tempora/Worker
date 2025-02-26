@@ -16,5 +16,6 @@ To create new `Worker` constructor func `New` should be used. It allowes to use 
 - `WithDelay` sets time delay between finishing N-th run and starting (N+1)-th run;
 - `WithOnErrDelay` sets delay that is applied if worker's run finished with error;
 - `WithCurrentTimeProvider` allows to specify a function which returns current time which is extremely useful in tests;
-- `WithTaskRunTimeInterval` sets time interval (hours, minutes, seconds) in which worker is allowed to run his task.
+- `WithTaskRunTimeInterval` sets time interval (hours, minutes, seconds) in which worker is allowed to run his task;
+- `WithRunTimeout` timeout for worker's task.
 
